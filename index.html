@@ -5,19 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>บวกเวลา</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script> <!-- เพิ่ม SheetJS -->
 </head>
 <body>
     <h2>บวกเวลางัดร้าน</h2>
-    <h2>Anything Else</h2>
+    <h3>Anything Else</h3>
     <form id="timeForm">
         <label>เลือกสถานที่:</label>
         <select id="location">
-            <option value="1">ปั้มบน</option>
-            <option value="2">ปั้มหอย</option>
-            <option value="3">อู่</option>
-            <option value="1">กลาง</option>
-            <option value="2">DG</option>
-            <option value="3">มือ 2</option>
+            <option value="ปั้มบน">ปั้มบน</option>
+            <option value="ปั้มหอย">ปั้มหอย</option>
+            <option value="อู่">อู่</option>
+            <option value="กลาง">กลาง</option>
+            <option value="DG">DG</option>
+            <option value="มือ 2">มือ 2</option>
         </select>
 
         <label>เวลาปัจจุบัน:</label>
@@ -39,6 +40,7 @@
         <tbody id="historyTable"></tbody>
     </table>
     <button id="resetHistory">ล้างประวัติ</button>
+    <button id="downloadExcel">ดาวน์โหลด Excel</button> <!-- ปุ่มดาวน์โหลด Excel -->
 
     <script>
         function updateCurrentTime() {
@@ -55,12 +57,18 @@
         document.getElementById("timeForm").addEventListener("submit", function(event) {
             event.preventDefault();
 
-            let now = new Date();
+            // ตรวจสอบว่าเวลาใน input เป็นไปตามรูปแบบที่ถูกต้อง
             let add_time = document.getElementById("add_time").value.split(".");
+            if (add_time.length !== 2 || isNaN(add_time[0]) || isNaN(add_time[1])) {
+                alert("กรุณากรอกเวลาในรูปแบบ นาที.วินาที เช่น 30.30");
+                return;
+            }
+
             let add_minutes = parseInt(add_time[0]) || 0;
             let add_seconds = parseInt(add_time[1]) || 0;
             let location = document.getElementById("location").value;
 
+            let now = new Date();
             now.setMinutes(now.getMinutes() + add_minutes);
             now.setSeconds(now.getSeconds() + add_seconds);
 
@@ -88,7 +96,7 @@
             let history = JSON.parse(localStorage.getItem("history")) || [];
             history.forEach(item => {
                 let row = `<tr>
-                    <td>สถานที่ ${item.location}</td>
+                    <td>${item.location}</td>
                     <td>${item.current_time}</td>
                     <td>${item.new_time}</td>
                 </tr>`;
@@ -99,6 +107,26 @@
         document.getElementById("resetHistory").addEventListener("click", function() {
             localStorage.removeItem("history");
             updateHistory();
+        });
+
+        document.getElementById("downloadExcel").addEventListener("click", function() {
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            
+            // สร้าง Array สำหรับข้อมูลใน Excel
+            let data = [["สถานที่", "เวลาปัจจุบัน", "เวลาหลังบวก"]];
+            history.forEach(item => {
+                data.push([item.location, item.current_time, item.new_time]);
+            });
+
+            // สร้าง worksheet จากข้อมูล
+            let ws = XLSX.utils.aoa_to_sheet(data);
+
+            // สร้าง workbook
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ประวัติการคำนวณ");
+
+            // ดาวน์โหลดไฟล์ Excel
+            XLSX.writeFile(wb, "history.xlsx");
         });
 
         updateHistory();
