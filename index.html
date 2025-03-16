@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h2>บวกเวลาจากเวลาปัจจุบัน</h2>
+    <h2>บวกเวลางัดร้าน</h2>
+    <h2>Anything Else</h2>
     <form id="timeForm">
         <label>เลือกสถานที่:</label>
         <select id="location">
@@ -29,7 +30,6 @@
     </form>
 
     <h3>ประวัติการคำนวณ</h3>
-    <button id="resetHistory">ล้างประวัติ</button>
     <table border="1">
         <tr>
             <th>สถานที่</th>
@@ -38,17 +38,19 @@
         </tr>
         <tbody id="historyTable"></tbody>
     </table>
+    <button id="resetHistory">ล้างประวัติ</button>
 
     <script>
-        function getCurrentTime() {
+        function updateCurrentTime() {
             let now = new Date();
             let hours = String(now.getHours()).padStart(2, '0');
             let minutes = String(now.getMinutes()).padStart(2, '0');
             let seconds = String(now.getSeconds()).padStart(2, '0');
-            return `${hours}.${minutes}.${seconds}`;
+            document.getElementById("current_time").value = `${hours}.${minutes}.${seconds}`;
         }
 
-        document.getElementById("current_time").value = getCurrentTime();
+        setInterval(updateCurrentTime, 1000); // อัปเดตเวลาทุกวินาที
+        updateCurrentTime(); // เรียกครั้งแรกทันที
 
         document.getElementById("timeForm").addEventListener("submit", function(event) {
             event.preventDefault();
@@ -62,8 +64,8 @@
             now.setMinutes(now.getMinutes() + add_minutes);
             now.setSeconds(now.getSeconds() + add_seconds);
 
-            let new_time = getCurrentTimeFormat(now);
-            let current_time = getCurrentTime();
+            let new_time = formatTime(now);
+            let current_time = document.getElementById("current_time").value;
 
             let history = JSON.parse(localStorage.getItem("history")) || [];
             history.push({ location, current_time, new_time });
@@ -72,7 +74,7 @@
             updateHistory();
         });
 
-        function getCurrentTimeFormat(date) {
+        function formatTime(date) {
             let hours = String(date.getHours()).padStart(2, '0');
             let minutes = String(date.getMinutes()).padStart(2, '0');
             let seconds = String(date.getSeconds()).padStart(2, '0');
