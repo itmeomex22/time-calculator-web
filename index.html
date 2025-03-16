@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บวกเวลา</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h2>บวกเวลาจากเวลาปัจจุบัน</h2>
+    <form id="timeForm">
+        <label>เลือกสถานที่:</label>
+        <select id="location">
+            <option value="1">ปั้มบน</option>
+            <option value="2">ปั้มหอย</option>
+            <option value="3">อู่</option>
+            <option value="1">กลาง</option>
+            <option value="2">DG</option>
+            <option value="3">มือ 2</option>
+        </select>
+
+        <label>เวลาปัจจุบัน:</label>
+        <input type="text" id="current_time" readonly>
+
+        <label>เพิ่มเวลา (นาที.วินาที):</label>
+        <input type="text" id="add_time" placeholder="30.30" required>
+
+        <button type="submit">คำนวณ</button>
+    </form>
+
+    <h3>ประวัติการคำนวณ</h3>
+    <button id="resetHistory">ล้างประวัติ</button>
+    <table border="1">
+        <tr>
+            <th>สถานที่</th>
+            <th>เวลาปัจจุบัน</th>
+            <th>เวลาหลังบวก</th>
+        </tr>
+        <tbody id="historyTable"></tbody>
+    </table>
+
+    <script>
+        function getCurrentTime() {
+            let now = new Date();
+            let hours = String(now.getHours()).padStart(2, '0');
+            let minutes = String(now.getMinutes()).padStart(2, '0');
+            let seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${hours}.${minutes}.${seconds}`;
+        }
+
+        document.getElementById("current_time").value = getCurrentTime();
+
+        document.getElementById("timeForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            let now = new Date();
+            let add_time = document.getElementById("add_time").value.split(".");
+            let add_minutes = parseInt(add_time[0]) || 0;
+            let add_seconds = parseInt(add_time[1]) || 0;
+            let location = document.getElementById("location").value;
+
+            now.setMinutes(now.getMinutes() + add_minutes);
+            now.setSeconds(now.getSeconds() + add_seconds);
+
+            let new_time = getCurrentTimeFormat(now);
+            let current_time = getCurrentTime();
+
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            history.push({ location, current_time, new_time });
+            localStorage.setItem("history", JSON.stringify(history));
+
+            updateHistory();
+        });
+
+        function getCurrentTimeFormat(date) {
+            let hours = String(date.getHours()).padStart(2, '0');
+            let minutes = String(date.getMinutes()).padStart(2, '0');
+            let seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}.${minutes}.${seconds}`;
+        }
+
+        function updateHistory() {
+            let historyTable = document.getElementById("historyTable");
+            historyTable.innerHTML = "";
+
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            history.forEach(item => {
+                let row = `<tr>
+                    <td>สถานที่ ${item.location}</td>
+                    <td>${item.current_time}</td>
+                    <td>${item.new_time}</td>
+                </tr>`;
+                historyTable.innerHTML += row;
+            });
+        }
+
+        document.getElementById("resetHistory").addEventListener("click", function() {
+            localStorage.removeItem("history");
+            updateHistory();
+        });
+
+        updateHistory();
+    </script>
+</body>
+</html>
