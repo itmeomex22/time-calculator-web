@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>บวกเวลา</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script> <!-- เพิ่ม SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid black; padding: 5px; text-align: center; }
+        button { margin: 5px; padding: 5px 10px; cursor: pointer; }
+    </style>
 </head>
 <body>
-    <h2>บวกเวลางัดร้าน</h2>
-    <h3>Anything Else</h3>
+    <h2>บวกเวลา</h2>
     <form id="timeForm">
         <label>เลือกสถานที่:</label>
         <select id="location">
@@ -20,64 +24,52 @@
             <option value="DG">DG</option>
             <option value="มือ 2">มือ 2</option>
         </select>
-
         <label>เวลาปัจจุบัน:</label>
         <input type="text" id="current_time" readonly>
-
         <label>เพิ่มเวลา (นาที.วินาที):</label>
-        <input type="text" id="add_time" placeholder="30.30" required>
-
+        <input type="text" id="add_time" placeholder="20 หรือ 20.30" required>
         <button type="submit">คำนวณ</button>
     </form>
 
     <h3>ประวัติการคำนวณ</h3>
-    <table border="1">
-        <tr>
-            <th>สถานที่</th>
-            <th>เวลาปัจจุบัน</th>
-            <th>เวลาหลังบวก</th>
-        </tr>
+    <table>
+        <thead>
+            <tr>
+                <th>สถานที่</th>
+                <th>เวลาปัจจุบัน</th>
+                <th>เวลาหลังบวก</th>
+                <th>ลบ</th>
+            </tr>
+        </thead>
         <tbody id="historyTable"></tbody>
     </table>
-    <br>
     <button id="resetHistory">ล้างประวัติ</button>
-    <button id="downloadExcel">ดาวน์โหลด Excel</button> <!-- ปุ่มดาวน์โหลด Excel -->
+    <button id="downloadExcel">ดาวน์โหลด Excel</button>
 
     <script>
         function updateCurrentTime() {
             let now = new Date();
-            let hours = String(now.getHours()).padStart(2, '0');
-            let minutes = String(now.getMinutes()).padStart(2, '0');
-            let seconds = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById("current_time").value = `${hours}.${minutes}.${seconds}`;
+            document.getElementById("current_time").value = formatTime(now);
         }
-
-        setInterval(updateCurrentTime, 1000); // อัปเดตเวลาทุกวินาที
-        updateCurrentTime(); // เรียกครั้งแรกทันที
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
 
         document.getElementById("timeForm").addEventListener("submit", function(event) {
             event.preventDefault();
-
-            // ตรวจสอบว่าเวลาใน input เป็นไปตามรูปแบบที่ถูกต้อง
             let add_time = document.getElementById("add_time").value.split(".");
-            if (add_time.length !== 2 || isNaN(add_time[0]) || isNaN(add_time[1])) {
-                alert("กรุณากรอกเวลาในรูปแบบ นาที.วินาที เช่น 30.30");
-                return;
-            }
-
             let add_minutes = parseInt(add_time[0]) || 0;
-            let add_seconds = parseInt(add_time[1]) || 0;
+            let add_seconds = add_time[1] ? parseInt(add_time[1]) : 0;
             let location = document.getElementById("location").value;
 
             let now = new Date();
             now.setMinutes(now.getMinutes() + add_minutes);
             now.setSeconds(now.getSeconds() + add_seconds);
-
             let new_time = formatTime(now);
             let current_time = document.getElementById("current_time").value;
 
             let history = JSON.parse(localStorage.getItem("history")) || [];
             history.push({ location, current_time, new_time });
+            history.sort((a, b) => a.new_time.localeCompare(b.new_time)); // เรียงลำดับ
             localStorage.setItem("history", JSON.stringify(history));
 
             updateHistory();
@@ -93,16 +85,23 @@
         function updateHistory() {
             let historyTable = document.getElementById("historyTable");
             historyTable.innerHTML = "";
-
             let history = JSON.parse(localStorage.getItem("history")) || [];
-            history.forEach(item => {
+            history.forEach((item, index) => {
                 let row = `<tr>
                     <td>${item.location}</td>
                     <td>${item.current_time}</td>
                     <td>${item.new_time}</td>
+                    <td><button onclick="deleteRow(${index})">ลบ</button></td>
                 </tr>`;
                 historyTable.innerHTML += row;
             });
+        }
+
+        function deleteRow(index) {
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            history.splice(index, 1);
+            localStorage.setItem("history", JSON.stringify(history));
+            updateHistory();
         }
 
         document.getElementById("resetHistory").addEventListener("click", function() {
@@ -112,21 +111,12 @@
 
         document.getElementById("downloadExcel").addEventListener("click", function() {
             let history = JSON.parse(localStorage.getItem("history")) || [];
-            
-            // สร้าง Array สำหรับข้อมูลใน Excel
             let data = [["สถานที่", "เวลาปัจจุบัน", "เวลาหลังบวก"]];
-            history.forEach(item => {
-                data.push([item.location, item.current_time, item.new_time]);
-            });
+            history.forEach(item => data.push([item.location, item.current_time, item.new_time]));
 
-            // สร้าง worksheet จากข้อมูล
             let ws = XLSX.utils.aoa_to_sheet(data);
-
-            // สร้าง workbook
             let wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "ประวัติการคำนวณ");
-
-            // ดาวน์โหลดไฟล์ Excel
+            XLSX.utils.book_append_sheet(wb, ws, "ประวัติ");
             XLSX.writeFile(wb, "history.xlsx");
         });
 
