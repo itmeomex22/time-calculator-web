@@ -47,6 +47,8 @@
     <button id="downloadExcel">ดาวน์โหลด Excel</button>
 
     <script>
+        const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1354111719584174090/0vHrfXCbUisYYYojMVlen3_PQg4EIh63eXPcJBa9gRp63cWZoL5NNdhIlld1P0YVCui5"; // 🔗 ใส่ลิงก์ Webhook ของคุณที่นี่
+
         function updateCurrentTime() {
             let now = new Date();
             document.getElementById("current_time").value = formatTime(now);
@@ -73,6 +75,17 @@
             localStorage.setItem("history", JSON.stringify(history));
 
             updateHistory();
+
+            // 📌 ส่งข้อมูลไป Discord
+            let message = {
+                content: `📢 **บวกเวลาใหม่!**\n📍 สถานที่: ${location}\n⏳ เวลาปัจจุบัน: ${current_time}\n⏩ เวลาหลังบวก: ${new_time}`
+            };
+
+            fetch(DISCORD_WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(message)
+            }).then(res => console.log("ส่งไปยัง Discord แล้ว!"));
         });
 
         function formatTime(date) {
