@@ -44,11 +44,11 @@
         <tbody id="historyTable"></tbody>
     </table>
     <button id="resetHistory">ล้างประวัติ</button>
-    <button id="downloadExcel">ดาวน์โหลด Excel</button>
+    <button id="sendToDiscord">ส่งไปที่ Discord</button>
 
     <script>
-        const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1354111719584174090/0vHrfXCbUisYYYojMVlen3_PQg4EIh63eXPcJBa9gRp63cWZoL5NNdhIlld1P0YVCui5"; // 🔗 ใส่ลิงก์ Webhook ของคุณที่นี่
-
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1354111719584174090/0vHrfXCbUisYYYojMVlen3_PQg4EIh63eXPcJBa9gRp63cWZoL5NNdhIlld1P0YVCui5";
+        
         function updateCurrentTime() {
             let now = new Date();
             document.getElementById("current_time").value = formatTime(now);
@@ -71,21 +71,10 @@
 
             let history = JSON.parse(localStorage.getItem("history")) || [];
             history.push({ location, current_time, new_time });
-            history.sort((a, b) => a.new_time.localeCompare(b.new_time)); // เรียงลำดับ
+            history.sort((a, b) => a.new_time.localeCompare(b.new_time)); 
             localStorage.setItem("history", JSON.stringify(history));
 
             updateHistory();
-
-            // 📌 ส่งข้อมูลไป Discord
-            let message = {
-                content: `📢 **บวกเวลาใหม่!**\n📍 สถานที่: ${location}\n⏳ เวลาปัจจุบัน: ${current_time}\n⏩ เวลาหลังบวก: ${new_time}`
-            };
-
-            fetch(DISCORD_WEBHOOK_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(message)
-            }).then(res => console.log("ส่งไปยัง Discord แล้ว!"));
         });
 
         function formatTime(date) {
@@ -122,15 +111,28 @@
             updateHistory();
         });
 
-        document.getElementById("downloadExcel").addEventListener("click", function() {
+        document.getElementById("sendToDiscord").addEventListener("click", function() {
             let history = JSON.parse(localStorage.getItem("history")) || [];
-            let data = [["สถานที่", "เวลาปัจจุบัน", "เวลาหลังบวก"]];
-            history.forEach(item => data.push([item.location, item.current_time, item.new_time]));
-
-            let ws = XLSX.utils.aoa_to_sheet(data);
-            let wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "ประวัติ");
-            XLSX.writeFile(wb, "history.xlsx");
+            if (history.length === 0) {
+                alert("ไม่มีข้อมูลส่งไปที่ Discord");
+                return;
+            }
+            let message = "📌 **ประวัติการคำนวณ** \n\n";
+            history.forEach(item => {
+                message += `🏠 **${item.location}** | ⏰ ${item.current_time} → 🔜 ${item.new_time}\n`;
+            });
+            
+            fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: message })
+            }).then(response => {
+                if (response.ok) {
+                    alert("ส่งข้อมูลไปที่ Discord เรียบร้อย!");
+                } else {
+                    alert("ส่งข้อมูลไม่สำเร็จ");
+                }
+            });
         });
 
         updateHistory();
