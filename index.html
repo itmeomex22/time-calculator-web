@@ -119,7 +119,7 @@
             }
             let message = "📌 **ประวัติการคำนวณ** \n\n";
             history.forEach(item => {
-                message += `🏠 **${item.location}** | ⏰ ${item.current_time} → 🔜 ${item.new_time}\n`;
+                message += `🏠 **สถานที่:${item.location}** | ⏳ เวลาปัจจุบัน: ${item.current_time} |⏩ เวลาหลังบวก: ${item.new_time}\n`;
             });
             
             fetch(WEBHOOK_URL, {
