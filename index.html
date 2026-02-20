@@ -54,11 +54,16 @@ function formatTime(date) {
     return `${h}.${m}.${s}`;
 }
 
+// ✅ อัปเดต realtime แบบยิงตรงเข้า cell
 function updateCurrentTime() {
     let now = new Date();
     let currentTime = formatTime(now);
-    document.querySelectorAll(".current-time").forEach(el => {
-        el.innerText = currentTime;
+
+    locations.forEach((_, index) => {
+        let cell = document.getElementById(`current_${index}`);
+        if (cell) {
+            cell.innerText = currentTime;
+        }
     });
 }
 
@@ -75,7 +80,7 @@ function renderTable() {
                 <input value="${item.name}" 
                        onchange="changeName(${index}, this.value)">
             </td>
-            <td class="current-time"></td>
+            <td id="current_${index}"></td>
             <td>
                 <input placeholder="20 หรือ 20.30" 
                        id="add_${index}">
@@ -89,7 +94,7 @@ function renderTable() {
         `;
     });
 
-    updateCurrentTime();
+    updateCurrentTime(); // ยิงเวลาเข้าใหม่หลัง render
 }
 
 function calculate(index) {
@@ -131,3 +136,4 @@ renderTable();
 
 </body>
 </html>
+
