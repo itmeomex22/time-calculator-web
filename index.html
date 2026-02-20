@@ -1,143 +1,133 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>บวกเวลา</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid black; padding: 5px; text-align: center; }
-        button { margin: 5px; padding: 5px 10px; cursor: pointer; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บวกเวลา</title>
+
+<style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid black; padding: 8px; text-align: center; }
+    input { width: 100px; text-align: center; }
+    button { padding: 5px 10px; cursor: pointer; }
+</style>
 </head>
+
 <body>
-    <h2>บวกเวลา</h2>
-    <form id="timeForm">
-        <label>เลือกสถานที่:</label>
-        <select id="location">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-        </select>
-        <label>เวลาปัจจุบัน:</label>
-        <input type="text" id="current_time" readonly>
-        <label>เพิ่มเวลา (นาที.วินาที):</label>
-        <input type="text" id="add_time" placeholder="20 หรือ 20.30" required>
-        <button type="submit">คำนวณ</button>
-    </form>
 
-    <h3>ประวัติการคำนวณ</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>สถานที่</th>
-                <th>เวลาปัจจุบัน</th>
-                <th>เวลาหลังบวก</th>
-                <th>ลบ</th>
-            </tr>
-        </thead>
-        <tbody id="historyTable"></tbody>
-    </table>
-    <button id="resetHistory">ล้างประวัติ</button>
-    <button id="sendToDiscord">ส่งไปที่ Discord</button>
+<h2>บวกเวลา</h2>
 
-    <script>
-        const WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1472508242797006902/tGLb_-RRI7bzFfGKSZ7L2zeg87stPTp1FUXJU_NjFd1FmV7_-tgaMUkOXm1pTOcDTkmZ";
-        
-        function updateCurrentTime() {
-            let now = new Date();
-            document.getElementById("current_time").value = formatTime(now);
-        }
-        setInterval(updateCurrentTime, 1000);
-        updateCurrentTime();
+<table>
+    <thead>
+        <tr>
+            <th>ชื่อสถานที่</th>
+            <th>เวลาปัจจุบัน</th>
+            <th>เพิ่มเวลา (นาที.วินาที)</th>
+            <th>เวลาหลังบวก</th>
+            <th>ลบ</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody">
+    </tbody>
+</table>
 
-        document.getElementById("timeForm").addEventListener("submit", function(event) {
-            event.preventDefault();
-            let add_time = document.getElementById("add_time").value.split(".");
-            let add_minutes = parseInt(add_time[0]) || 0;
-            let add_seconds = add_time[1] ? parseInt(add_time[1]) : 0;
-            let location = document.getElementById("location").value;
+<br>
+<button onclick="addRow()">➕ เพิ่มสถานที่</button>
 
-            let now = new Date();
-            now.setMinutes(now.getMinutes() + add_minutes);
-            now.setSeconds(now.getSeconds() + add_seconds);
-            let new_time = formatTime(now);
-            let current_time = document.getElementById("current_time").value;
+<script>
 
-            let history = JSON.parse(localStorage.getItem("history")) || [];
-            history.push({ location, current_time, new_time });
-            history.sort((a, b) => a.new_time.localeCompare(b.new_time)); 
-            localStorage.setItem("history", JSON.stringify(history));
+let locations = JSON.parse(localStorage.getItem("locations")) || [
+    { name: "สถานที่ 1", new_time: "-" },
+    { name: "สถานที่ 2", new_time: "-" },
+    { name: "สถานที่ 3", new_time: "-" }
+];
 
-            updateHistory();
-        });
+function saveData() {
+    localStorage.setItem("locations", JSON.stringify(locations));
+}
 
-        function formatTime(date) {
-            let hours = String(date.getHours()).padStart(2, '0');
-            let minutes = String(date.getMinutes()).padStart(2, '0');
-            let seconds = String(date.getSeconds()).padStart(2, '0');
-            return `${hours}.${minutes}.${seconds}`;
-        }
+function formatTime(date) {
+    let h = String(date.getHours()).padStart(2, '0');
+    let m = String(date.getMinutes()).padStart(2, '0');
+    let s = String(date.getSeconds()).padStart(2, '0');
+    return `${h}.${m}.${s}`;
+}
 
-        function updateHistory() {
-            let historyTable = document.getElementById("historyTable");
-            historyTable.innerHTML = "";
-            let history = JSON.parse(localStorage.getItem("history")) || [];
-            history.forEach((item, index) => {
-                let row = `<tr>
-                    <td>${item.location}</td>
-                    <td>${item.current_time}</td>
-                    <td>${item.new_time}</td>
-                    <td><button onclick="deleteRow(${index})">ลบ</button></td>
-                </tr>`;
-                historyTable.innerHTML += row;
-            });
-        }
+function updateCurrentTime() {
+    let now = new Date();
+    let currentTime = formatTime(now);
+    document.querySelectorAll(".current-time").forEach(el => {
+        el.innerText = currentTime;
+    });
+}
 
-        function deleteRow(index) {
-            let history = JSON.parse(localStorage.getItem("history")) || [];
-            history.splice(index, 1);
-            localStorage.setItem("history", JSON.stringify(history));
-            updateHistory();
-        }
+setInterval(updateCurrentTime, 1000);
 
-        document.getElementById("resetHistory").addEventListener("click", function() {
-            localStorage.removeItem("history");
-            updateHistory();
-        });
+function renderTable() {
+    let tableBody = document.getElementById("tableBody");
+    tableBody.innerHTML = "";
 
-        document.getElementById("sendToDiscord").addEventListener("click", function() {
-            let history = JSON.parse(localStorage.getItem("history")) || [];
-            if (history.length === 0) {
-                alert("ไม่มีข้อมูลส่งไปที่ Discord");
-                return;
-            }
-            let message = "📌 **เวลางัดร้าน** \n";
-            history.forEach(item => {
-                message += `🏠 **สถานที่ : ${item.location}** | ⏳ เวลาปัจจุบัน : ${item.current_time} |⏩ **งัดได้อีกที : ${item.new_time}**\n`;
-            });
-            
-            fetch(WEBHOOK_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: message })
-            }).then(response => {
-                if (response.ok) {
-                    alert("ส่งข้อมูลไปที่ Discord เรียบร้อย!");
-                } else {
-                    alert("ส่งข้อมูลไม่สำเร็จ");
-                }
-            });
-        });
+    locations.forEach((item, index) => {
+        tableBody.innerHTML += `
+        <tr>
+            <td>
+                <input value="${item.name}" 
+                       onchange="changeName(${index}, this.value)">
+            </td>
+            <td class="current-time"></td>
+            <td>
+                <input placeholder="20 หรือ 20.30" 
+                       id="add_${index}">
+                <button onclick="calculate(${index})">คำนวณ</button>
+            </td>
+            <td id="result_${index}">${item.new_time}</td>
+            <td>
+                <button onclick="deleteRow(${index})">ลบ</button>
+            </td>
+        </tr>
+        `;
+    });
 
-        updateHistory();
-    </script>
+    updateCurrentTime();
+}
+
+function calculate(index) {
+    let input = document.getElementById(`add_${index}`).value.split(".");
+    let addMin = parseInt(input[0]) || 0;
+    let addSec = input[1] ? parseInt(input[1]) : 0;
+
+    let now = new Date();
+    now.setMinutes(now.getMinutes() + addMin);
+    now.setSeconds(now.getSeconds() + addSec);
+
+    let result = formatTime(now);
+
+    locations[index].new_time = result;
+    saveData();
+    renderTable();
+}
+
+function changeName(index, value) {
+    locations[index].name = value;
+    saveData();
+}
+
+function deleteRow(index) {
+    locations.splice(index, 1);
+    saveData();
+    renderTable();
+}
+
+function addRow() {
+    locations.push({ name: "สถานที่ใหม่", new_time: "-" });
+    saveData();
+    renderTable();
+}
+
+renderTable();
+
+</script>
+
 </body>
 </html>
-
-
